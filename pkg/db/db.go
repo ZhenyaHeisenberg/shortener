@@ -18,3 +18,4 @@ func NewDb(conf *configs.Config) *Db {
 	}
 	return &Db{db}
 }
+
