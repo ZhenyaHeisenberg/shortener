@@ -1,10 +1,12 @@
 package link
 
 import (
-	"fmt"
 	"net/http"
 	"project/pkg/request"
 	"project/pkg/responce"
+	"strconv"
+
+	"gorm.io/gorm"
 )
 
 type LinkHandlerDeps struct {
@@ -47,25 +49,69 @@ func (handler *LinkHandler) Create() http.HandlerFunc { // POST
 		}
 
 		link := NewLink(body.Url)
-		createdLink, err := handler.LinkRepository.Create(link)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		for {
+			existedLink, _ := handler.LinkRepository.GetByHash(link.Hash)
+			if existedLink == nil {
+				break
+			}
+			link.GenerateHash()
 		}
 
+		createdLink, err := handler.LinkRepository.Create(link)
+		if err != nil {
+			responce.Json(w, err.Error(), 500)
+		}
 		responce.Json(w, createdLink, 201)
+
 	}
 }
 
 func (handler *LinkHandler) Update() http.HandlerFunc { // PATCH
 	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := request.HandleBody[LinkUpdateRequest](&w, r)
+		if err != nil {
+			return
+		}
 
+		idString := r.PathValue("id")
+		id, err := strconv.ParseUint(idString, 10, 64)
+		if err != nil {
+			responce.Json(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if body.Hash != "" {
+
+		}
+
+		link, err := handler.LinkRepository.Update(&Link{
+			Model: gorm.Model{ID: uint(id)},
+			Url:   body.Url,
+			Hash:  body.Hash,
+		})
+		if err != nil {
+			responce.Json(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		responce.Json(w, link, 201)
 	}
 }
 
 func (handler *LinkHandler) Delete() http.HandlerFunc { // DELETE
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		fmt.Println(id)
+		idString := r.PathValue("id")
+		id, err := strconv.ParseUint(idString, 10, 32)
+		if err != nil {
+			responce.Json(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		err = handler.LinkRepository.Delete(uint(id))
+		if err != nil {
+			responce.Json(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		responce.Json(w, nil, 204)
 	}
 }
