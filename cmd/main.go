@@ -15,11 +15,16 @@ type Responce struct {
 
 func main() {
 	conf := configs.LoadConfig()
-	db.NewDb(conf) // db
+	db := db.NewDb(conf) // db
 	router := http.NewServeMux()
 
+	//Repositories
+	linkRepository := link.NewLinkRepository(db)
+
 	// Handlers
-	link.NewLinkHandler(router, link.LinkHandlerDeps{})
+	link.NewLinkHandler(router, link.LinkHandlerDeps{
+		LinkRepository: linkRepository,
+	})
 	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
 		Config: conf,
 	})
