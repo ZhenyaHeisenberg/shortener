@@ -33,7 +33,7 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc { // GET
 		hash := r.PathValue("hash")
 		link, err := handler.LinkRepository.GetByHash(hash)
 		if err != nil {
-			responce.Json(w, err.Error(), http.StatusNotFound)
+			http.Error(w, err.Error(), 404)
 			return
 		}
 
@@ -59,7 +59,8 @@ func (handler *LinkHandler) Create() http.HandlerFunc { // POST
 
 		createdLink, err := handler.LinkRepository.Create(link)
 		if err != nil {
-			responce.Json(w, err.Error(), 500)
+			http.Error(w, err.Error(), 500)
+			return 
 		}
 		responce.Json(w, createdLink, 201)
 
@@ -76,7 +77,7 @@ func (handler *LinkHandler) Update() http.HandlerFunc { // PATCH
 		idString := r.PathValue("id")
 		id, err := strconv.ParseUint(idString, 10, 64)
 		if err != nil {
-			responce.Json(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), 400)
 			return
 		}
 
@@ -90,7 +91,7 @@ func (handler *LinkHandler) Update() http.HandlerFunc { // PATCH
 			Hash:  body.Hash,
 		})
 		if err != nil {
-			responce.Json(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), 400)
 			return
 		}
 
@@ -101,15 +102,21 @@ func (handler *LinkHandler) Update() http.HandlerFunc { // PATCH
 func (handler *LinkHandler) Delete() http.HandlerFunc { // DELETE
 	return func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
-		id, err := strconv.ParseUint(idString, 10, 32)
+		id, err := strconv.ParseUint(idString, 10, 64)
 		if err != nil {
-			responce.Json(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), 400)
 			return
 		}
 
-		err = handler.LinkRepository.Delete(uint(id))
+		_, err = handler.LinkRepository.FindById(uint(id)) // Проверка наличия
 		if err != nil {
-			responce.Json(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), 404)
+			return
+		}
+
+		err = handler.LinkRepository.Delete(uint(id)) // Удаление
+		if err != nil {
+			http.Error(w, err.Error(), 500)
 			return
 		}
 		responce.Json(w, nil, 204)
