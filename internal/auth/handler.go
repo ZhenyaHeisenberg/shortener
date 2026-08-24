@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"project/configs"
+	"project/pkg/jwt"
 	"project/pkg/request"
 	"project/pkg/responce"
 )
@@ -32,13 +33,22 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		_, err = handler.AuthService.Login(body.Email, body.Password)
+		email, err := handler.AuthService.Login(body.Email, body.Password)
 		if err != nil {
-			responce.Json(w, err.Error(), 400)
-			return 
+			http.Error(w, err.Error(), 401)
+			return
 		}
 
-		responce.Json(w, "Success", 200)
+		token, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(email)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		data := LoginResponce{
+			Token: token,
+		}
+
+		responce.Json(w, data, 200)
 	}
 }
 
@@ -48,11 +58,21 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		_, err = handler.AuthService.Register(body.Email, body.Password, body.Name)
+		email, err := handler.AuthService.Register(body.Email, body.Password, body.Name)
 		if err != nil {
-			responce.Json(w, err.Error(), 400)
+			http.Error(w, err.Error(), 401)
 			return
 		}
-		responce.Json(w, "Success", 201)
+
+		token, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(email)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		data := LoginResponce{
+			Token: token,
+		}
+
+		responce.Json(w, data, 200)
 	}
 }
