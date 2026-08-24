@@ -32,7 +32,13 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		responce.Json(w, body, 200)
+		_, err = handler.AuthService.Login(body.Email, body.Password)
+		if err != nil {
+			responce.Json(w, err.Error(), 400)
+			return 
+		}
+
+		responce.Json(w, "Success", 200)
 	}
 }
 
@@ -44,15 +50,9 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 		}
 		_, err = handler.AuthService.Register(body.Email, body.Password, body.Name)
 		if err != nil {
-			if err.Error() == errUserExists {
-				responce.Json(w, err.Error(), 409)
-				return
-			}
-			responce.Json(w, err.Error(), 500)
+			responce.Json(w, err.Error(), 400)
 			return
 		}
-
-
 		responce.Json(w, "Success", 201)
 	}
 }
