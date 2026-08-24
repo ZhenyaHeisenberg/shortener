@@ -6,7 +6,9 @@ import (
 	"project/configs"
 	"project/internal/auth"
 	"project/internal/link"
+	"project/internal/user"
 	"project/pkg/db"
+	"project/pkg/middleware"
 )
 
 type Responce struct {
@@ -18,20 +20,32 @@ func main() {
 	db := db.NewDb(conf) // db
 	router := http.NewServeMux()
 
-	//Repositories
+	// Repositories
 	linkRepository := link.NewLinkRepository(db)
+	userRepository := user.NewUserRepository(db)
+
+	// Services
+	authService :=	auth.NewAuthService(userRepository)
 
 	// Handlers
+	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
+		Config: conf,
+		AuthService: authService,
+	})
 	link.NewLinkHandler(router, link.LinkHandlerDeps{
 		LinkRepository: linkRepository,
 	})
-	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
-		Config: conf,
-	})
+
+
+	// MiddleWares
+	stack := middleware.Chain(
+		middleware.CORS,
+		middleware.Logging,
+	)
 
 	server := http.Server{
 		Addr:    ":8081",
-		Handler: router,
+		Handler: stack(router),
 	}
 
 	fmt.Println("Сервер запущен на порте 8081")

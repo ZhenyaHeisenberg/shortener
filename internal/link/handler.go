@@ -2,6 +2,7 @@ package link
 
 import (
 	"net/http"
+	"project/pkg/middleware"
 	"project/pkg/request"
 	"project/pkg/responce"
 	"strconv"
@@ -24,7 +25,7 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 
 	router.HandleFunc("GET /{hash}", handler.GoTo())
 	router.HandleFunc("POST /link/createlink", handler.Create())
-	router.HandleFunc("PATCH /link/{id}", handler.Update())
+	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update()))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 }
 
@@ -37,7 +38,7 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc { // GET
 			return
 		}
 
-		http.Redirect(w, r, link.Url, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, link.Url, 307)
 	}
 }
 
@@ -60,7 +61,7 @@ func (handler *LinkHandler) Create() http.HandlerFunc { // POST
 		createdLink, err := handler.LinkRepository.Create(link)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
-			return 
+			return
 		}
 		responce.Json(w, createdLink, 201)
 
