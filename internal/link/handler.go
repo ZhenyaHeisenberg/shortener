@@ -1,7 +1,9 @@
 package link
 
 import (
+	"fmt"
 	"net/http"
+	"project/configs"
 	"project/pkg/middleware"
 	"project/pkg/request"
 	"project/pkg/responce"
@@ -12,6 +14,7 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
+	Config *configs.Config
 }
 
 type LinkHandler struct {
@@ -25,7 +28,7 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 
 	router.HandleFunc("GET /{hash}", handler.GoTo())
 	router.HandleFunc("POST /link/createlink", handler.Create())
-	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update()))
+	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 }
 
@@ -74,6 +77,12 @@ func (handler *LinkHandler) Update() http.HandlerFunc { // PATCH
 		if err != nil {
 			return
 		}
+		email, ok := r.Context().Value(middleware.ContextEmailKey).(string)
+		if ok {
+			fmt.Println("Вытащилли Email:", email)
+		}
+		
+		
 
 		idString := r.PathValue("id")
 		id, err := strconv.ParseUint(idString, 10, 64)
