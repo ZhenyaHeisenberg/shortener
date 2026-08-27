@@ -14,7 +14,7 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
-	Config *configs.Config
+	Config         *configs.Config
 }
 
 type LinkHandler struct {
@@ -27,9 +27,11 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	}
 
 	router.HandleFunc("GET /{hash}", handler.GoTo())
+	router.Handle("GET /link", middleware.IsAuthed(handler.GetAll(), deps.Config))
 	router.HandleFunc("POST /link/createlink", handler.Create())
 	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
+
 }
 
 func (handler *LinkHandler) GoTo() http.HandlerFunc { // GET
@@ -42,6 +44,30 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc { // GET
 		}
 
 		http.Redirect(w, r, link.Url, 307)
+	}
+}
+
+func (handler *LinkHandler) GetAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			http.Error(w, "invalid limit", 400)
+			return
+		}
+
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, "invalid offset", 400)
+			return
+		}
+
+		links := handler.LinkRepository.GetAll(limit, offset)
+		count := handler.LinkRepository.Count()
+		resp := GetAllLinksResponse{
+			Links: links,
+			Count: int(count),
+		}
+		responce.Json(w, resp, 200)
 	}
 }
 
@@ -81,8 +107,6 @@ func (handler *LinkHandler) Update() http.HandlerFunc { // PATCH
 		if ok {
 			fmt.Println("Вытащилли Email:", email)
 		}
-		
-		
 
 		idString := r.PathValue("id")
 		id, err := strconv.ParseUint(idString, 10, 64)
