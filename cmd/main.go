@@ -9,6 +9,7 @@ import (
 	"project/internal/stat"
 	"project/internal/user"
 	"project/pkg/db"
+	"project/pkg/event"
 	"project/pkg/middleware"
 )
 
@@ -20,6 +21,7 @@ func main() {
 	conf := configs.LoadConfig()
 	db := db.NewDb(conf) // db
 	router := http.NewServeMux()
+	eventBus := event.NewEventBus()
 
 	// Repositories
 	linkRepository := link.NewLinkRepository(db)
@@ -28,6 +30,10 @@ func main() {
 
 	// Services
 	authService := auth.NewAuthService(userRepository)
+	statServise := stat.NewStatService(&stat.StatServiceDeps{
+		EventBus: eventBus,
+		StatRepository: statRepository,
+	})
 
 	// Handlers
 	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
@@ -36,7 +42,7 @@ func main() {
 	})
 	link.NewLinkHandler(router, link.LinkHandlerDeps{
 		LinkRepository: linkRepository,
-		StatRepository: statRepository,
+		EventBus:       eventBus,
 		Config:         conf,
 	})
 
@@ -50,6 +56,8 @@ func main() {
 		Addr:    ":8081",
 		Handler: stack(router),
 	}
+
+	go statServise.AddClick()
 
 	fmt.Println("Сервер запущен на порте 8081")
 	server.ListenAndServe()

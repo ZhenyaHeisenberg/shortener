@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/configs"
-	"project/pkg/di"
+	"project/pkg/event"
 	"project/pkg/middleware"
 	"project/pkg/request"
 	"project/pkg/responce"
@@ -15,19 +15,19 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
-	StatRepository di.IStatRepository
+	EventBus       *event.EventBus
 	Config         *configs.Config
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
-	StatRepository di.IStatRepository
+	EventBus       *event.EventBus
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
-		StatRepository: deps.StatRepository,
+		EventBus:       deps.EventBus,
 	}
 
 	router.HandleFunc("GET /{hash}", handler.GoTo())
@@ -47,7 +47,10 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc { // GET
 			return
 		}
 
-		handler.StatRepository.AddClick(link.ID)
+		go handler.EventBus.Publish(event.Event{
+			Type: event.EventLinkVisited,
+			Data: link.ID,
+		})
 		http.Redirect(w, r, link.Url, 307)
 	}
 }
