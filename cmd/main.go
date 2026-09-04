@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"project/configs"
 	"project/internal/auth"
@@ -19,7 +20,15 @@ type Responce struct {
 
 func main() {
 	conf := configs.LoadConfig()
+	if conf == nil {
+		log.Fatalln("config is nil")
+		return
+	}
 	db := db.NewDb(conf) // db
+		if conf == nil {
+		log.Fatalln("db is nil")
+		return
+	}
 	router := http.NewServeMux()
 	eventBus := event.NewEventBus()
 
@@ -30,7 +39,7 @@ func main() {
 
 	// Services
 	authService := auth.NewAuthService(userRepository)
-	statServise := stat.NewStatService(&stat.StatServiceDeps{
+	statServise := stat.NewStatService(stat.StatServiceDeps{
 		EventBus: eventBus,
 		StatRepository: statRepository,
 	})
@@ -44,6 +53,10 @@ func main() {
 		LinkRepository: linkRepository,
 		EventBus:       eventBus,
 		Config:         conf,
+	})
+	stat.NewStatHandler(router, stat.StatHandlerDeps{
+		StatRepository: statRepository,
+		Config: conf,
 	})
 
 	// MiddleWares

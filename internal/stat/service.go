@@ -15,7 +15,7 @@ type StatService struct {
 	StatRepository *StatRepository
 }
 
-func NewStatService(deps *StatServiceDeps) *StatService {
+func NewStatService(deps StatServiceDeps) *StatService {
 	return &StatService{
 		EventBus: deps.EventBus,
 		StatRepository: deps.StatRepository,
