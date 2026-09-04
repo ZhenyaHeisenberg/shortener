@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/configs"
+	"project/pkg/di"
 	"project/pkg/middleware"
 	"project/pkg/request"
 	"project/pkg/responce"
@@ -14,16 +15,19 @@ import (
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
+	StatRepository di.IStatRepository
 	Config         *configs.Config
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
+	StatRepository di.IStatRepository
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
+		StatRepository: deps.StatRepository,
 	}
 
 	router.HandleFunc("GET /{hash}", handler.GoTo())
@@ -43,6 +47,7 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc { // GET
 			return
 		}
 
+		handler.StatRepository.AddClick(link.ID)
 		http.Redirect(w, r, link.Url, 307)
 	}
 }

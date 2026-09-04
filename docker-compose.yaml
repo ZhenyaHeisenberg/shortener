@@ -5,8 +5,9 @@ services:
     environment: 
       POSTGRES_USER: my_postgres
       POSTGRES_PASSWORD: my_pass
+      POSTGRES_DB: my_database
       PGDATA: /data/postgres
     volumes: 
       - ./postgres-data:/data/postgres
     ports: 
-    - "5432:5432"
+    - "5433:5432"
